@@ -1,0 +1,119 @@
+{
+  "destination": "日本關西：京都 & 大阪",
+  "startDate": "2024-04-01",
+  "dates": "2024/04/01 - 2024/04/03",
+  "coverImage": "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80",
+  "days": [
+    {
+      "id": 1,
+      "date": "Day 1",
+      "title": "抵達大阪 & 道頓堀",
+      "activities": [
+        {
+          "id": 101,
+          "time": "14:00",
+          "title": "關西機場抵達",
+          "location": "KIX T1",
+          "type": "transport",
+          "note": "搭乘南海電鐵特急 Rapit"
+        },
+        {
+          "id": 102,
+          "time": "16:00",
+          "title": "飯店 Check-in",
+          "location": "難波 Cross Hotel",
+          "type": "accommodation",
+          "note": "寄放行李"
+        },
+        {
+          "id": 103,
+          "time": "18:00",
+          "title": "道頓堀晚餐",
+          "location": "一蘭拉麵",
+          "type": "food",
+          "note": "一定要加點半熟蛋"
+        },
+        {
+          "id": 104,
+          "time": "20:00",
+          "title": "心齋橋逛街",
+          "location": "心齋橋筋商店街",
+          "type": "shopping",
+          "note": "藥妝店採購"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "date": "Day 2",
+      "title": "京都古都巡禮",
+      "activities": [
+        {
+          "id": 201,
+          "time": "09:00",
+          "title": "前往京都",
+          "location": "大阪梅田站",
+          "type": "transport",
+          "note": "阪急京都線"
+        },
+        {
+          "id": 202,
+          "time": "10:30",
+          "title": "清水寺",
+          "location": "清水寺",
+          "type": "sightseeing",
+          "note": "和服體驗預約 10:00"
+        },
+        {
+          "id": 203,
+          "time": "13:00",
+          "title": "二年坂・三年坂",
+          "location": "老街",
+          "type": "sightseeing",
+          "note": "買抹茶甜點"
+        },
+        {
+          "id": 204,
+          "time": "18:00",
+          "title": "鴨川散步",
+          "location": "三條大橋",
+          "type": "leisure",
+          "note": "看夕陽"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "date": "Day 3",
+      "title": "環球影城一日遊",
+      "activities": []
+    }
+  ],
+  "packingList": [
+    {
+      "id": 1,
+      "item": "護照",
+      "checked": false
+    },
+    {
+      "id": 2,
+      "item": "日幣現金",
+      "checked": false
+    },
+    {
+      "id": 3,
+      "item": "網卡 /漫遊",
+      "checked": true
+    },
+    {
+      "id": 4,
+      "item": "環球影城門票 QR Code",
+      "checked": false
+    },
+    {
+      "id": 5,
+      "item": "充電器 & 轉接頭",
+      "checked": false
+    }
+  ]
+}
