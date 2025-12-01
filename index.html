@@ -36,21 +36,21 @@
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-        import React, { useState, useEffect } from 'react';
+        import React, { useState, useEffect, useRef } from 'react';
         import { createRoot } from 'react-dom/client';
         import { 
             MapPin, Calendar, Plus, Trash2, CheckCircle, Circle, 
             Coffee, Camera, Hotel, Utensils, Train,
             Sun, Moon, Luggage, Map, Edit3, Save, X, Sparkles, Loader2,
-            ArrowRight, ExternalLink, Search, Menu, Download, Eye, EyeOff, RefreshCw, AlertCircle
+            ArrowRight, ExternalLink, Search, Menu, Download, Eye, EyeOff, RefreshCw, AlertCircle, FolderOpen
         } from 'lucide-react';
 
         const TravelPlanner = () => {
             const apiKey = ""; 
+            const fileInputRef = useRef(null); // 用於手動匯入檔案
 
-            // 1. 建立一個完整的預設範本，確保就算讀取失敗也能顯示內容
             const defaultTrip = {
-                destination: "日本關西：京都 & 大阪",
+                destination: "日本關西：京都 & 大阪 (範例)",
                 startDate: "2024-04-01", 
                 dates: "2024/04/01 - 2024/04/03", 
                 coverImage: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80",
@@ -100,22 +100,18 @@
             const [transportQuery, setTransportQuery] = useState({ from: "", to: "" });
             const [transportResult, setTransportResult] = useState(null);
             const [isTransportLoading, setIsTransportLoading] = useState(false);
-            const [dataStatus, setDataStatus] = useState("init"); // init, loading, success, error
+            const [dataStatus, setDataStatus] = useState("init");
 
-            // 深色模式
             useEffect(() => {
                 if (isDarkMode) document.documentElement.classList.add('dark');
                 else document.documentElement.classList.remove('dark');
             }, [isDarkMode]);
 
-            // ★★★ 核心修正：穩健的資料讀取邏輯 ★★★
             const loadTripData = async () => {
                 setDataStatus("loading");
                 let loaded = false;
 
-                // 嘗試 1: 從 JSON 檔案讀取 (GitHub Pages 環境)
                 try {
-                    // 移除 ./ 前綴，直接使用檔名，相容性較高
                     const response = await fetch(`trip_data.json?t=${new Date().getTime()}`);
                     if (response.ok) {
                         const jsonData = await response.json();
@@ -128,10 +124,9 @@
                         }
                     }
                 } catch (error) {
-                    console.log("JSON 讀取失敗 (可能是本地模式):", error);
+                    console.log("JSON 讀取失敗 (本地模式無法自動讀取，請使用匯入按鈕):", error);
                 }
 
-                // 嘗試 2: 如果 JSON 讀取失敗，讀取 LocalStorage (本地快取)
                 if (!loaded) {
                     const savedTrip = localStorage.getItem('myTripData');
                     if (savedTrip) {
@@ -139,31 +134,24 @@
                             const parsed = JSON.parse(savedTrip);
                             if (parsed.flightInfo) delete parsed.flightInfo;
                             setTrip(parsed);
-                            // 標記為 error 代表沒讀到遠端 JSON，但我們載入了本地備份
-                            setDataStatus("error"); 
+                            setDataStatus("local"); // 使用本地快取
                             loaded = true;
                         } catch(e) {}
                     }
                 }
 
-                // 嘗試 3: 都沒有，就使用預設值 (defaultTrip 已經在 useState 初始值裡了)
                 if (!loaded) {
-                    setDataStatus("error"); // 顯示使用預設值的提示
+                    setDataStatus("error");
                 }
             };
 
-            // 首次載入執行
             useEffect(() => {
                 loadTripData();
             }, []);
 
-            // 自動儲存
             useEffect(() => {
-                // 只要 trip 有變化就存入 LocalStorage
                 if (JSON.stringify(trip) !== JSON.stringify(defaultTrip)) {
                     localStorage.setItem('myTripData', JSON.stringify(trip));
-                    
-                    // 提示自動儲存 (延遲觸發避免初始載入時跳出)
                     const timer = setTimeout(() => setShowAutoSaved(true), 500);
                     const hideTimer = setTimeout(() => setShowAutoSaved(false), 2500);
                     return () => { clearTimeout(timer); clearTimeout(hideTimer); };
@@ -206,6 +194,39 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+            };
+
+            // ★★★ 新增：手動匯入 JSON 功能 ★★★
+            const handleImportClick = () => {
+                fileInputRef.current.click();
+            };
+
+            const handleFileChange = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const json = JSON.parse(e.target.result);
+                        if (json.days && Array.isArray(json.days)) {
+                            // 清理舊資料結構
+                            if (json.flightInfo) delete json.flightInfo;
+                            setTrip(json);
+                            if(json.days.length > 0) setActiveDay(json.days[0].id);
+                            setDataStatus("success");
+                            alert("匯入成功！");
+                        } else {
+                            alert("檔案格式錯誤，請確認這是正確的 trip_data.json");
+                        }
+                    } catch (error) {
+                        console.error("解析錯誤", error);
+                        alert("檔案解析失敗，請確認檔案內容是否完整");
+                    }
+                };
+                reader.readAsText(file);
+                // 清空 input 讓同一個檔案可以重複選取
+                event.target.value = ''; 
             };
 
             const callGeminiAPI = async (prompt, schema) => {
@@ -400,6 +421,8 @@
                             {showAutoSaved && <div className="bg-black/40 backdrop-blur-md text-white px-3 py-2 rounded-full text-xs font-bold flex items-center gap-1 border border-white/10 animate-fade-in"><CheckCircle size={14} className="text-green-400" /> 已自動儲存</div>}
                             
                             {/* 工具列 */}
+                            <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
+                            <button onClick={handleImportClick} className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white p-2 rounded-full border border-white/10" title="匯入行程 (解決無法讀取問題)"><FolderOpen size={18} /></button>
                             <button onClick={loadTripData} className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white p-2 rounded-full border border-white/10" title="重新讀取資料"><RefreshCw size={18} /></button>
                             <button onClick={() => setIsDarkMode(!isDarkMode)} className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white p-2 rounded-full border border-white/10" title="切換深色模式">{isDarkMode ? <Sun size={18} /> : <Moon size={18} />}</button>
                             <button onClick={() => setIsEditMode(!isEditMode)} className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white p-2 rounded-full border border-white/10" title={isEditMode ? "切換至預覽模式" : "切換至編輯模式"}>{isEditMode ? <Eye size={18} /> : <Edit3 size={18} />}</button>
@@ -454,7 +477,7 @@
                                         <div key={item.id} className="group flex items-center gap-3 text-sm min-h-[32px]">
                                             <button onClick={() => setTrip({...trip, packingList: trip.packingList.map(i => i.id === item.id ? {...i, checked: !i.checked} : i)})} className={item.checked ? 'text-green-500' : 'text-gray-300 dark:text-slate-500 hover:text-gray-400'} p-1>{item.checked ? <CheckCircle size={18} /> : <Circle size={18} />}</button>
                                             <span className={`flex-1 ${item.checked ? 'text-gray-400 dark:text-slate-500 line-through' : 'text-gray-700 dark:text-slate-200'}`}>{item.item}</span>
-                                            {isEditMode && <button onClick={() => setTrip({...trip, packingList: trip.packingList.filter(i => i.id !== item.id)})} className="text-red-300 opacity-0 group-hover:opacity-100 hover:text-red-500 transition p-1"><X size={14} /></button>}
+                                            {isEditMode && <button onClick={() => setTrip({...trip, packingList: trip.packingList.filter(i => i.id !== item.id)})} className="text-red-300 opacity-0 group-hover:opacity-100 hover:text-red-500 transition"><X size={14} /></button>}
                                         </div>
                                     ))}
                                     {isEditMode && (
@@ -491,7 +514,7 @@
                                     </div>
                                     <div><label className="block text-xs font-bold text-gray-500 dark:text-slate-400 mb-1">名稱</label><input type="text" className="w-full border border-gray-200 dark:border-slate-600 rounded-xl p-3 dark:bg-slate-700 dark:text-white" value={newActivity.title} onChange={e => setNewActivity({...newActivity, title: e.target.value})} /></div>
                                     <div><label className="block text-xs font-bold text-gray-500 dark:text-slate-400 mb-1">地點 / 備註</label><div className="space-y-3"><input type="text" placeholder="地點" className="w-full border border-gray-200 dark:border-slate-600 rounded-xl p-3 text-sm dark:bg-slate-700 dark:text-white" value={newActivity.location} onChange={e => setNewActivity({...newActivity, location: e.target.value})} /><input type="text" placeholder="備註" className="w-full border border-gray-200 dark:border-slate-600 rounded-xl p-3 text-sm dark:bg-slate-700 dark:text-white" value={newActivity.note} onChange={e => setNewActivity({...newActivity, note: e.target.value})} /></div></div>
-                                    <button onClick={handleSaveActivity} disabled={!newActivity.title || !newActivity.time} className="w-full bg-slate-800 dark:bg-slate-600 hover:bg-slate-700 dark:hover:bg-slate-500 text-white font-bold py-4 rounded-xl shadow-lg disabled:opacity-50">儲存</button>
+                                    <button onClick={handleSaveActivity} disabled={!newActivity.title || !newActivity.time} className="w-full bg-slate-800 dark:bg-slate-600 text-white font-bold py-4 rounded-xl shadow-lg disabled:opacity-50">儲存</button>
                                 </div>
                                 <div className="h-6 md:hidden"></div>
                             </div>
