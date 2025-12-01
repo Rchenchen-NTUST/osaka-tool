@@ -10,6 +10,22 @@
       "title": "抵達大阪 & 道頓堀",
       "activities": [
         {
+          "id": 101,
+          "time": "14:00",
+          "title": "關西機場抵達",
+          "location": "KIX T1",
+          "type": "transport",
+          "note": "搭乘南海電鐵特急 Rapit"
+        },
+        {
+          "time": "15:21",
+          "title": "qwrqw",
+          "location": "",
+          "type": "sightseeing",
+          "note": "",
+          "id": 1764609572826
+        },
+        {
           "id": 102,
           "time": "16:00",
           "title": "飯店 Check-in",
@@ -24,14 +40,6 @@
           "location": "一蘭拉麵",
           "type": "food",
           "note": "一定要加點半熟蛋"
-        },
-        {
-          "id": 101,
-          "time": "18:30",
-          "title": "關西機場抵達",
-          "location": "KIX T1",
-          "type": "transport",
-          "note": "搭乘南海電鐵特急 Rapit"
         },
         {
           "id": 104,
