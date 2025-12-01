@@ -5,16 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>旅程規劃助手</title>
     
-    <!-- PWA 設定 -->
+    <!-- PWA 設定: 讓手機可以加入主畫面 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0f172a"> 
-    
-    <!-- 載入樣式與函式庫 -->
+    <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoi5peF56iL6KaP5YqD5Yqp5omTIiwic2hvcnRfbmFtZSI6IuaXheeoj+WKqeaJkyIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiMwZjE3MmEiLCJ0aGVtZV9jb2xvciI6IiMwZjE3MmEifQ==">
+
+    <!-- 1. 載入 Tailwind CSS (樣式框架) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 設定 Tailwind 深色模式 -->
     <script>
-        tailwind.config = { darkMode: 'class' }
+        tailwind.config = {
+            darkMode: 'class',
+        }
     </script>
+    
+    <!-- 2. 設定 Import Map (讓瀏覽器直接載入 React) -->
     <script type="importmap">
     {
         "imports": {
@@ -24,20 +31,45 @@
         }
     }
     </script>
+
+    <!-- 3. 載入 Babel (瀏覽器端編譯 JSX) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        body, div, button, input, select, span, h1, h2, h3, p { transition: background-color 0.2s, border-color 0.2s, color 0.2s; }
-        @supports (padding-bottom: env(safe-area-inset-bottom)) { .pb-safe { padding-bottom: env(safe-area-inset-bottom); } }
+        /* 頁面載入動畫 */
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fade-in 0.3s ease-out forwards;
+        }
+        /* 隱藏捲軸但保留滑動功能 */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* 平滑顏色過渡 */
+        body, div, button, input, select, span, h1, h2, h3, p {
+            transition-property: background-color, border-color, color;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 200ms;
+        }
+        /* iPhone 底部安全區 */
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+            .pb-safe {
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 font-sans pb-safe">
     <div id="root"></div>
 
+    <!-- 4. React 應用程式邏輯 -->
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect } from 'react';
         import { createRoot } from 'react-dom/client';
@@ -45,34 +77,33 @@
             MapPin, Calendar, Plus, Trash2, CheckCircle, Circle, 
             Coffee, Camera, Hotel, Utensils, Train,
             Sun, Moon, Luggage, Map, Edit3, Save, X, Sparkles, Loader2,
-            ArrowRight, ExternalLink, Search, Menu, Download, Eye, EyeOff
+            ArrowRight, ExternalLink, Search, Menu, Download, Eye, EyeOff, RefreshCw
         } from 'lucide-react';
 
         const TravelPlanner = () => {
-            const apiKey = ""; // 若有 API Key 請填入此處
+            // === API Key 設定區 ===
+            // 如果要公開發布到 GitHub，建議保持為空，或提醒使用者自行填入
+            const apiKey = ""; 
 
-            // 預設資料
+            // 預設資料 (當讀不到 JSON 時顯示的範本)
             const defaultTrip = {
-                destination: "日本關西：京都 & 大阪",
-                startDate: "2024-04-01", 
-                dates: "2024/04/01 - 2024/04/03", 
-                coverImage: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80",
+                destination: "正在讀取行程...",
+                startDate: "2024-01-01", 
+                dates: "讀取中...", 
+                coverImage: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80",
                 days: [
-                    { id: 1, date: "Day 1", title: "抵達大阪 & 道頓堀", activities: [] },
-                    { id: 2, date: "Day 2", title: "京都古都巡禮", activities: [] },
-                    { id: 3, date: "Day 3", title: "環球影城一日遊", activities: [] }
+                    { id: 1, date: "Day 1", title: "載入中...", activities: [] }
                 ],
-                packingList: [
-                    { id: 1, item: "護照", checked: false },
-                    { id: 2, item: "日幣現金", checked: false },
-                    { id: 3, item: "網卡 /漫遊", checked: true },
-                ]
+                packingList: []
             };
 
+            // 狀態管理
             const [trip, setTrip] = useState(defaultTrip);
             const [activeDay, setActiveDay] = useState(1);
             const [isEditMode, setIsEditMode] = useState(true); 
-            const [isDarkMode, setIsDarkMode] = useState(false);
+            const [isDarkMode, setIsDarkMode] = useState(false); // 深色模式
+
+            // UI 狀態
             const [isEditingHeader, setIsEditingHeader] = useState(false);
             const [editingDayTitleId, setEditingDayTitleId] = useState(null);
             const [showAddModal, setShowAddModal] = useState(false);
@@ -80,41 +111,93 @@
             const [newActivity, setNewActivity] = useState({ time: "", title: "", location: "", type: "sightseeing", note: "" });
             const [newItemText, setNewItemText] = useState("");
             const [showAutoSaved, setShowAutoSaved] = useState(false);
+            
+            // 功能狀態
             const [isGeneratingPackingList, setIsGeneratingPackingList] = useState(false);
             const [transportQuery, setTransportQuery] = useState({ from: "", to: "" });
             const [transportResult, setTransportResult] = useState(null);
             const [isTransportLoading, setIsTransportLoading] = useState(false);
+            const [dataStatus, setDataStatus] = useState("init"); // init, loading, success, error
 
+            // 深色模式效果
             useEffect(() => {
-                if (isDarkMode) document.documentElement.classList.add('dark');
-                else document.documentElement.classList.remove('dark');
+                if (isDarkMode) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
             }, [isDarkMode]);
 
-            useEffect(() => {
+            // ★★★ 關鍵核心：從 GitHub (同目錄) 讀取 trip_data.json ★★★
+            const loadTripData = async () => {
+                setDataStatus("loading");
+                try {
+                    // 嘗試讀取同目錄下的 trip_data.json
+                    // ?t=時間戳記 是為了避免瀏覽器快取舊的檔案
+                    const response = await fetch(`./trip_data.json?t=${new Date().getTime()}`);
+                    
+                    if (response.ok) {
+                        const jsonData = await response.json();
+                        // 簡單驗證資料結構
+                        if(jsonData.days) {
+                            // 確保移除舊格式的 flightInfo
+                            if (jsonData.flightInfo) delete jsonData.flightInfo;
+                            setTrip(jsonData);
+                            setDataStatus("success");
+                            // 讀取成功後，如果是第一天，切換過去
+                            if(jsonData.days.length > 0) setActiveDay(jsonData.days[0].id);
+                        }
+                    } else {
+                        console.log("未找到 trip_data.json，嘗試讀取瀏覽器快取");
+                        loadFromLocalStorage(); // 讀不到檔案就讀快取
+                        setDataStatus("error"); // 雖然讀快取成功，但檔案讀取是失敗的
+                    }
+                } catch (error) {
+                    console.error("讀取失敗:", error);
+                    loadFromLocalStorage();
+                    setDataStatus("error");
+                }
+            };
+
+            const loadFromLocalStorage = () => {
                 const savedTrip = localStorage.getItem('myTripData');
                 if (savedTrip) {
                     try {
                         const parsedTrip = JSON.parse(savedTrip);
-                        if (!parsedTrip.startDate) parsedTrip.startDate = "2024-04-01";
                         if (parsedTrip.flightInfo) delete parsedTrip.flightInfo;
                         setTrip(parsedTrip);
-                    } catch (e) { console.error(e); }
+                    } catch(e) {}
                 }
+            };
+
+            // 首次載入執行
+            useEffect(() => {
+                loadTripData();
             }, []);
 
+            // 自動儲存 (LocalStorage)
             useEffect(() => {
-                localStorage.setItem('myTripData', JSON.stringify(trip));
-                if (trip !== defaultTrip) {
-                    setShowAutoSaved(true);
-                    const timer = setTimeout(() => setShowAutoSaved(false), 2000);
-                    return () => clearTimeout(timer);
+                // 只有在資料讀取成功，或者已經初始化後才寫入，避免把空的資料寫入
+                if (dataStatus === "success" || dataStatus === "error") {
+                    localStorage.setItem('myTripData', JSON.stringify(trip));
+                    
+                    // 提示自動儲存 (排除初始載入時的觸發)
+                    if (trip.destination !== defaultTrip.destination) {
+                        setShowAutoSaved(true);
+                        const timer = setTimeout(() => setShowAutoSaved(false), 2000);
+                        return () => clearTimeout(timer);
+                    }
                 }
-            }, [trip]);
+            }, [trip, dataStatus]);
 
+            // 日期計算 helper
             const safeDateAdd = (startDateStr, daysToAdd) => {
                 if (!startDateStr) return null;
                 const parts = startDateStr.split('-');
-                const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                const year = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1; 
+                const day = parseInt(parts[2], 10);
+                const date = new Date(year, month, day);
                 date.setDate(date.getDate() + daysToAdd);
                 return date;
             };
@@ -124,6 +207,7 @@
                 return date ? date.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric', weekday: 'short' }) : "";
             };
 
+            // 更新日期範圍文字
             useEffect(() => {
                 if (trip.startDate && trip.days.length > 0) {
                     const start = safeDateAdd(trip.startDate, 0);
@@ -132,74 +216,106 @@
                         const startStr = start.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
                         const endStr = end.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
                         const newDatesStr = `${startStr} - ${endStr}`;
-                        if (trip.dates !== newDatesStr) setTrip(prev => ({ ...prev, dates: newDatesStr }));
+                        if (trip.dates !== newDatesStr) {
+                            setTrip(prev => ({ ...prev, dates: newDatesStr }));
+                        }
                     }
                 }
             }, [trip.startDate, trip.days.length]);
 
+            // 匯出 JSON
             const handleExportJson = () => {
                 const dataStr = JSON.stringify(trip, null, 2);
                 const blob = new Blob([dataStr], { type: "application/json" });
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = `travel_plan_${trip.startDate}.json`;
+                link.download = `trip_data.json`; // 預設檔名改成 trip_data.json 方便直接覆蓋 GitHub
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
             };
 
+            // API 呼叫
             const callGeminiAPI = async (prompt, schema) => {
-                if (!apiKey) { alert("請先設定 API Key"); return null; }
+                if (!apiKey) {
+                    alert("請先在 index.html 程式碼中設定您的 Google Gemini API Key！");
+                    return null;
+                }
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { responseMimeType: "application/json", responseSchema: schema }
+                };
                 try {
-                    const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json", responseSchema: schema } }) });
+                    const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                     if (!response.ok) throw new Error(`API Error: ${response.status}`);
                     const data = await response.json();
                     return JSON.parse(data.candidates?.[0]?.content?.parts?.[0]?.text);
-                } catch (error) { alert("AI 呼叫失敗"); return null; }
+                } catch (error) {
+                    console.error("Gemini API Error:", error);
+                    alert("AI 生成失敗，請檢查 API Key 或稍後再試。");
+                    return null;
+                }
             };
 
             const handleAiSuggestPackingList = async () => {
+                if (!isEditMode) return;
                 setIsGeneratingPackingList(true);
-                const result = await callGeminiAPI(`去${trip.destination}旅行${trip.dates}，推薦5個必備物品`, { type: "ARRAY", items: { type: "OBJECT", properties: { item: { type: "STRING" } } } });
-                if (result) setTrip({ ...trip, packingList: [...trip.packingList, ...result.map(r => ({ id: Date.now() + Math.random(), item: r.item, checked: false }))] });
+                const prompt = `我正要去「${trip.destination}」旅行，時間 ${trip.dates}。推薦5個必備且容易忘記的物品。`;
+                const schema = { type: "ARRAY", items: { type: "OBJECT", properties: { item: { type: "STRING" } } } };
+                const result = await callGeminiAPI(prompt, schema);
+                if (result) {
+                    const newItems = result.map(r => ({ id: Date.now() + Math.random(), item: r.item, checked: false }));
+                    setTrip({ ...trip, packingList: [...trip.packingList, ...newItems] });
+                }
                 setIsGeneratingPackingList(false);
             };
 
             const handleAiTransportQuery = async () => {
+                if (!transportQuery.from || !transportQuery.to) return;
                 setIsTransportLoading(true);
-                const result = await callGeminiAPI(`在${trip.destination}從${transportQuery.from}到${transportQuery.to}的交通`, { type: "OBJECT", properties: { method: { type: "STRING" }, duration: { type: "STRING" }, cost: { type: "STRING" }, details: { type: "STRING" } }, required: ["method", "duration", "cost", "details"] });
+                setTransportResult(null);
+                const prompt = `在「${trip.destination}」旅行，從「${transportQuery.from}」到「${transportQuery.to}」的最佳交通方式。`;
+                const schema = { type: "OBJECT", properties: { method: { type: "STRING" }, duration: { type: "STRING" }, cost: { type: "STRING" }, details: { type: "STRING" } }, required: ["method", "duration", "cost", "details"] };
+                const result = await callGeminiAPI(prompt, schema);
                 if (result) setTransportResult(result);
                 setIsTransportLoading(false);
             };
 
+            // CRUD 操作
             const handleAddDay = () => {
+                if (!isEditMode) return;
                 const newId = trip.days.length > 0 ? Math.max(...trip.days.map(d => d.id)) + 1 : 1;
-                setTrip({ ...trip, days: [...trip.days, { id: newId, date: `Day ${trip.days.length + 1}`, title: "自由活動", activities: [] }] });
+                const nextDayNum = trip.days.length + 1;
+                const newDay = { id: newId, date: `Day ${nextDayNum}`, title: "自由活動", activities: [] };
+                setTrip({ ...trip, days: [...trip.days, newDay] });
                 setActiveDay(newId);
             };
 
             const handleDeleteDay = (dayId) => {
-                if (trip.days.length <= 1) return alert("至少需保留一天");
-                if (confirm("確定刪除此日行程？")) {
-                    const updatedDays = trip.days.filter(d => d.id !== dayId).map((d, i) => ({ ...d, date: `Day ${i + 1}` }));
-                    setTrip({ ...trip, days: updatedDays });
-                    if (activeDay === dayId) setActiveDay(updatedDays[0].id);
-                }
+                if (!isEditMode) return;
+                if (trip.days.length <= 1) { alert("至少需要保留一天！"); return; }
+                if (!window.confirm("確定要刪除這一天的所有行程嗎？")) return;
+                const updatedDays = trip.days.filter(d => d.id !== dayId).map((d, index) => ({ ...d, date: `Day ${index + 1}` }));
+                setTrip({ ...trip, days: updatedDays });
+                if (activeDay === dayId) setActiveDay(updatedDays[0].id);
             };
 
-            const openAddModal = () => { setNewActivity({ time: "", title: "", location: "", type: "sightseeing", note: "" }); setEditingActivityId(null); setShowAddModal(true); };
-            const openEditModal = (activity) => { setNewActivity({ ...activity }); setEditingActivityId(activity.id); setShowAddModal(true); };
+            const openAddModal = () => { if(isEditMode) { setNewActivity({ time: "", title: "", location: "", type: "sightseeing", note: "" }); setEditingActivityId(null); setShowAddModal(true); }};
+            const openEditModal = (activity) => { if(isEditMode) { setNewActivity({ ...activity }); setEditingActivityId(activity.id); setShowAddModal(true); }};
             
             const handleSaveActivity = () => {
                 if (!newActivity.title || !newActivity.time) return;
                 const updatedDays = trip.days.map(day => {
                     if (day.id === activeDay) {
-                        const newActivities = editingActivityId 
-                            ? day.activities.map(a => a.id === editingActivityId ? { ...newActivity, id: editingActivityId } : a)
-                            : [...day.activities, { ...newActivity, id: Date.now() }];
-                        return { ...day, activities: newActivities.sort((a, b) => a.time.localeCompare(b.time)) };
+                        let newActivitiesList;
+                        if (editingActivityId) {
+                            newActivitiesList = day.activities.map(a => a.id === editingActivityId ? { ...newActivity, id: editingActivityId } : a);
+                        } else {
+                            newActivitiesList = [...day.activities, { ...newActivity, id: Date.now() }];
+                        }
+                        return { ...day, activities: newActivitiesList.sort((a, b) => a.time.localeCompare(b.time)) };
                     }
                     return day;
                 });
@@ -208,31 +324,169 @@
             };
 
             const handleDeleteActivity = (dayId, activityId) => {
-                setTrip({ ...trip, days: trip.days.map(d => d.id === dayId ? { ...d, activities: d.activities.filter(a => a.id !== activityId) } : d) });
+                if (!isEditMode) return;
+                const updatedDays = trip.days.map(day => { if (day.id === dayId) return { ...day, activities: day.activities.filter(a => a.id !== activityId) }; return day; });
+                setTrip({ ...trip, days: updatedDays });
             };
+
+            const toggleCheckItem = (itemId) => { const updatedList = trip.packingList.map(item => item.id === itemId ? { ...item, checked: !item.checked } : item); setTrip({ ...trip, packingList: updatedList }); };
+            const handleAddItem = (e) => { if (e.key === 'Enter' && newItemText.trim() && isEditMode) { setTrip({ ...trip, packingList: [...trip.packingList, { id: Date.now(), item: newItemText, checked: false }] }); setNewItemText(""); }};
+            const handleDeleteItem = (itemId) => { if(!isEditMode) return; const updatedList = trip.packingList.filter(item => item.id !== itemId); setTrip({ ...trip, packingList: updatedList }); };
+            const handleUpdateDayTitle = (dayId, newTitle) => { const updatedDays = trip.days.map(d => d.id === dayId ? { ...d, title: newTitle } : d); setTrip({ ...trip, days: updatedDays }); };
 
             const getTypeIcon = (type) => {
-                const icons = { food: <Utensils size={18} className="text-orange-500" />, transport: <Train size={18} className="text-blue-500" />, accommodation: <Hotel size={18} className="text-indigo-500" />, shopping: <Luggage size={18} className="text-pink-500" />, leisure: <Coffee size={18} className="text-emerald-500" /> };
-                return icons[type] || <Camera size={18} className="text-purple-500" />;
+                switch (type) {
+                    case 'food': return <Utensils size={18} className="text-orange-500" />;
+                    case 'transport': return <Train size={18} className="text-blue-500" />;
+                    case 'accommodation': return <Hotel size={18} className="text-indigo-500" />;
+                    case 'shopping': return <Luggage size={18} className="text-pink-500" />;
+                    case 'leisure': return <Coffee size={18} className="text-emerald-500" />;
+                    default: return <Camera size={18} className="text-purple-500" />;
+                }
             };
-            
             const getTypeBorderColor = (type) => {
-                const colors = { food: 'border-orange-400', transport: 'border-blue-400', accommodation: 'border-indigo-400', shopping: 'border-pink-400', leisure: 'border-emerald-400' };
-                return colors[type] || 'border-purple-400';
+                switch (type) {
+                    case 'food': return 'border-orange-400';
+                    case 'transport': return 'border-blue-400';
+                    case 'accommodation': return 'border-indigo-400';
+                    case 'shopping': return 'border-pink-400';
+                    case 'leisure': return 'border-emerald-400';
+                    default: return 'border-purple-400';
+                }
             };
-
             const activeDayData = trip.days.find(d => d.id === activeDay) || trip.days[0];
 
-            return (
-                <div className="min-h-screen bg-gray-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 pb-24 md:pb-20 transition-colors duration-300">
-                    <div className="relative h-48 md:h-64 bg-slate-800 overflow-hidden group">
-                        <img src={trip.coverImage} className="w-full h-full object-cover opacity-60" />
-                        <div className="absolute top-0 right-0 p-4 flex gap-2 z-20">
-                            {showAutoSaved && <div className="bg-black/40 backdrop-blur-md text-white px-3 py-2 rounded-full text-xs font-bold flex items-center gap-1 border border-white/10 animate-fade-in"><CheckCircle size={14} className="text-green-400" /> 已自動儲存</div>}
-                            <button onClick={() => setIsDarkMode(!isDarkMode)} className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white p-2 rounded-full border border-white/10" title="切換深色模式">{isDarkMode ? <Sun size={18} /> : <Moon size={18} />}</button>
-                            <button onClick={() => setIsEditMode(!isEditMode)} className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white p-2 rounded-full border border-white/10" title="切換模式">{isEditMode ? <Eye size={18} /> : <Edit3 size={18} />}</button>
-                            <button onClick={handleExportJson} className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white p-2 rounded-full border border-white/10" title="儲存檔案"><Save size={18} /></button>
+            // 渲染組件
+            const renderDaySelector = (isMobile = false) => (
+                <div className={`bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-sm p-4 ${isMobile ? 'overflow-x-auto whitespace-nowrap no-scrollbar' : ''}`}>
+                    {!isMobile && <h3 className="font-bold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider mb-3">行程總覽</h3>}
+                    <div className={`${isMobile ? 'flex gap-3 pb-2' : 'space-y-2'}`}>
+                        {trip.days.map((day, index) => {
+                            const dateStr = getFormattedDate(trip.startDate, index);
+                            return (
+                                <button key={day.id} onClick={() => setActiveDay(day.id)}
+                                    className={`rounded-xl transition-all flex items-center shrink-0 
+                                    ${isMobile ? 'flex-none px-4 py-2 border' : 'w-full text-left p-3 justify-between'} 
+                                    ${activeDay === day.id 
+                                        ? 'bg-blue-50 dark:bg-slate-700 text-blue-600 dark:text-blue-300 border-blue-200 dark:border-slate-600 ring-1 ring-blue-200 dark:ring-slate-600 shadow-sm' 
+                                        : 'hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300 border-gray-100 dark:border-slate-700'
+                                    }`}
+                                >
+                                    <div>
+                                        <span className={`font-bold block flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-sm'}`}>
+                                            {day.date} <span className="text-xs font-normal opacity-70 bg-gray-100 dark:bg-slate-600 px-1.5 rounded">{dateStr}</span>
+                                        </span>
+                                        {!isMobile && <span className="text-xs opacity-80 truncate max-w-[150px]">{day.title}</span>}
+                                    </div>
+                                    {!isMobile && activeDay === day.id && <div className="w-2 h-2 rounded-full bg-blue-500"></div>}
+                                </button>
+                            );
+                        })}
+                        {isEditMode && (
+                            <button onClick={handleAddDay} className={`border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 dark:text-slate-500 hover:border-blue-300 hover:text-blue-500 dark:hover:text-blue-300 transition flex items-center justify-center gap-2 font-bold text-sm shrink-0 ${isMobile ? 'flex-none px-4 py-2' : 'w-full py-2 mt-2'}`}>
+                                <Plus size={16} /> {isMobile ? "新增" : "新增天數"}
+                            </button>
+                        )}
+                    </div>
+                </div>
+            );
+
+            const renderItinerary = () => {
+                return (
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm min-h-[500px] relative overflow-hidden">
+                        <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex justify-between items-start bg-gradient-to-r from-white to-gray-50 dark:from-slate-800 dark:to-slate-800 sticky top-0 z-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm">
+                            <div className="flex-1">
+                                <span className="text-blue-500 dark:text-blue-400 font-bold text-sm bg-blue-50 dark:bg-slate-700 px-2 py-1 rounded mb-2 inline-block">
+                                    {activeDayData.date} ({getFormattedDate(trip.startDate, trip.days.findIndex(d => d.id === activeDay))})
+                                </span>
+                                {editingDayTitleId === activeDayData.id && isEditMode ? (
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <input className="text-2xl font-bold text-slate-800 dark:text-white border-b-2 border-blue-500 outline-none bg-transparent w-full max-w-[300px]" autoFocus value={activeDayData.title} onChange={(e) => handleUpdateDayTitle(activeDayData.id, e.target.value)} onBlur={() => setEditingDayTitleId(null)} onKeyDown={(e) => e.key === 'Enter' && setEditingDayTitleId(null)} />
+                                        <button onClick={() => setEditingDayTitleId(null)} className="text-green-500"><CheckCircle size={24} /></button>
+                                    </div>
+                                ) : (
+                                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2 group cursor-pointer" onClick={() => isEditMode && setEditingDayTitleId(activeDayData.id)}>
+                                        {activeDayData.title}
+                                        {isEditMode && <button className="opacity-20 group-hover:opacity-100 text-gray-300 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 transition"><Edit3 size={18} /></button>}
+                                    </h2>
+                                )}
+                            </div>
+                            {isEditMode && (
+                                <div className="flex gap-2">
+                                    <button onClick={openAddModal} className="hidden md:flex bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 text-white p-2 rounded-full shadow-lg transition-transform hover:scale-105"><Plus size={20} /></button>
+                                </div>
+                            )}
                         </div>
+
+                        <div className="p-4 md:p-6 pb-20">
+                            {activeDayData.activities.length === 0 ? (
+                                <div className="text-center py-12 text-gray-400 dark:text-slate-500">
+                                    <Map className="mx-auto mb-3 opacity-20" size={48} />
+                                    <p>這一天還沒有安排行程</p>
+                                    {isEditMode && (
+                                        <div className="flex justify-center gap-4 mt-4">
+                                            <button onClick={openAddModal} className="text-blue-500 dark:text-blue-400 px-4 py-3 font-medium hover:underline">+ 手動新增</button>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {activeDayData.activities.map((activity) => (
+                                        <div key={activity.id} className="relative pl-4 md:pl-0">
+                                            <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gray-100 dark:bg-slate-700 md:hidden ml-1.5"></div>
+                                            <div className={`group relative bg-white dark:bg-slate-800 border-l-4 ${getTypeBorderColor(activity.type)} shadow-sm rounded-r-lg rounded-bl-lg p-3 md:p-4 active:scale-[0.99] transition-transform`}>
+                                                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+                                                    <div className="flex items-center gap-2 md:w-20 shrink-0"><span className="font-mono font-bold text-lg text-slate-700 dark:text-slate-300">{activity.time}</span></div>
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2 mb-1">{getTypeIcon(activity.type)}<h3 className="font-bold text-lg text-slate-800 dark:text-white">{activity.title}</h3></div>
+                                                        <div className="text-sm text-gray-500 dark:text-slate-400 flex flex-wrap gap-x-4 gap-y-1"><span className="flex items-center gap-1"><MapPin size={14} /> {activity.location}</span>{activity.note && <span className="bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded text-xs text-gray-600 dark:text-slate-300">{activity.note}</span>}</div>
+                                                    </div>
+                                                    {isEditMode && (
+                                                        <div className="absolute top-3 right-3 flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition">
+                                                            <button onClick={(e) => { e.stopPropagation(); openEditModal(activity); }} className="p-2 text-gray-300 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 bg-white/80 dark:bg-slate-700/80 rounded-full"><Edit3 size={16} /></button>
+                                                            <button onClick={(e) => { e.stopPropagation(); handleDeleteActivity(activeDay, activity.id); }} className="p-2 text-gray-300 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 bg-white/80 dark:bg-slate-700/80 rounded-full"><Trash2 size={16} /></button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-gray-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 font-sans pb-24 md:pb-20 transition-colors duration-300">
+                    <div className="relative h-48 md:h-64 bg-slate-800 overflow-hidden group">
+                        <img src={trip.coverImage} alt="Trip Cover" className="w-full h-full object-cover opacity-60" />
+                        
+                        <div className="absolute top-0 right-0 p-4 flex gap-2 z-20">
+                            {/* 資料來源狀態提示 */}
+                            {dataStatus === 'loading' && <div className="bg-black/40 backdrop-blur-md text-white px-3 py-2 rounded-full text-xs font-bold flex items-center gap-1"><Loader2 size={14} className="animate-spin" /> 讀取檔案中...</div>}
+                            {dataStatus === 'error' && <div className="bg-red-500/80 backdrop-blur-md text-white px-3 py-2 rounded-full text-xs font-bold flex items-center gap-1"><X size={14} /> 讀取失敗 (使用快取)</div>}
+                            {showAutoSaved && (
+                                <div className="bg-black/40 backdrop-blur-md text-white px-3 py-2 rounded-full text-xs font-bold flex items-center gap-1 border border-white/10 animate-fade-in transition-opacity">
+                                    <CheckCircle size={14} className="text-green-400" /> 已自動儲存
+                                </div>
+                            )}
+                            
+                            {/* 重新讀取按鈕 (方便測試) */}
+                            <button onClick={loadTripData} className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white p-2 rounded-full border border-white/10" title="從 GitHub 重新讀取"><RefreshCw size={18} /></button>
+
+                            <button onClick={() => setIsDarkMode(!isDarkMode)} className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white p-2 rounded-full border border-white/10" title="切換深色模式">
+                                {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+                            </button>
+                            <button onClick={() => setIsEditMode(!isEditMode)} className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white p-2 rounded-full border border-white/10" title={isEditMode ? "切換至預覽模式" : "切換至編輯模式"}>
+                                {isEditMode ? <Eye size={18} /> : <Edit3 size={18} />}
+                            </button>
+                            <button onClick={handleExportJson} className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white p-2 rounded-full border border-white/10" title="下載 trip_data.json">
+                                <Save size={18} />
+                            </button>
+                        </div>
+
                         <div className="absolute bottom-0 left-0 p-4 md:p-6 text-white w-full bg-gradient-to-t from-black/70 to-transparent">
                             <div className="max-w-4xl mx-auto w-full">
                                 {isEditingHeader && isEditMode ? (
@@ -253,17 +507,7 @@
 
                     <div className="max-w-4xl mx-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="md:col-span-1 space-y-6">
-                            <div className="bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-sm p-4 overflow-x-auto whitespace-nowrap no-scrollbar">
-                                <div className="flex md:flex-col gap-3 md:gap-2">
-                                    {trip.days.map((day, index) => (
-                                        <button key={day.id} onClick={() => setActiveDay(day.id)} className={`rounded-xl transition-all flex items-center shrink-0 p-3 md:w-full text-left justify-between border ${activeDay === day.id ? 'bg-blue-50 dark:bg-slate-700 text-blue-600 dark:text-blue-300 border-blue-200 dark:border-slate-600' : 'hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300 border-gray-100 dark:border-slate-700'}`}>
-                                            <div><span className="font-bold block text-sm">{day.date} <span className="opacity-70 font-normal">{getFormattedDate(trip.startDate, index)}</span></span>{!window.matchMedia('(max-width: 768px)').matches && <span className="text-xs opacity-80 truncate">{day.title}</span>}</div>
-                                        </button>
-                                    ))}
-                                    {isEditMode && <button onClick={handleAddDay} className="border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 dark:text-slate-500 hover:border-blue-300 transition flex items-center justify-center gap-2 font-bold text-sm shrink-0 p-3 md:w-full"><Plus size={16} /> 新增天數</button>}
-                                </div>
-                            </div>
-
+                            {renderDaySelector(false)}
                             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-4 border border-blue-100 dark:border-slate-700">
                                 <h3 className="font-bold text-blue-600 dark:text-blue-400 text-xs uppercase tracking-wider mb-3 flex items-center gap-2"><Train size={14} /> AI 交通查詢</h3>
                                 <div className="space-y-2">
@@ -273,7 +517,6 @@
                                     {transportResult && <div className="mt-3 bg-blue-50 dark:bg-slate-700 rounded-lg p-3 text-sm animate-fade-in"><span className="font-bold text-blue-800 dark:text-blue-300">{transportResult.method}</span> • {transportResult.cost}<br/>{transportResult.duration} • {transportResult.details}</div>}
                                 </div>
                             </div>
-
                             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-4">
                                 <div className="flex justify-between items-center mb-3">
                                     <h3 className="font-bold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider flex items-center gap-2"><Luggage size={14} /> 行李清單</h3>
@@ -293,44 +536,47 @@
                         </div>
 
                         <div className="md:col-span-2 bg-white dark:bg-slate-800 rounded-2xl shadow-sm min-h-[500px] relative overflow-hidden">
-                            <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex justify-between items-start bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm sticky top-0 z-10">
-                                <div className="flex-1">
-                                    <span className="text-blue-500 dark:text-blue-400 font-bold text-sm bg-blue-50 dark:bg-slate-700 px-2 py-1 rounded mb-2 inline-block">{activeDayData.date} ({getFormattedDate(trip.startDate, trip.days.findIndex(d => d.id === activeDay))})</span>
-                                    {editingDayTitleId === activeDayData.id && isEditMode ? (
-                                        <div className="flex items-center gap-2"><input className="text-2xl font-bold text-slate-800 dark:text-white border-b-2 border-blue-500 outline-none bg-transparent" autoFocus value={activeDayData.title} onChange={(e) => setTrip({...trip, days: trip.days.map(d => d.id === activeDay ? {...d, title: e.target.value} : d)})} onBlur={() => setEditingDayTitleId(null)} onKeyDown={(e) => e.key==='Enter' && setEditingDayTitleId(null)} /><button onClick={() => setEditingDayTitleId(null)} className="text-green-500"><CheckCircle size={24} /></button></div>
-                                    ) : (
-                                        <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2 cursor-pointer" onClick={() => isEditMode && setEditingDayTitleId(activeDayData.id)}>{activeDayData.title} {isEditMode && <Edit3 size={18} className="opacity-20 hover:opacity-100" />}</h2>
-                                    )}
-                                </div>
-                                {isEditMode && <button onClick={openAddModal} className="hidden md:flex bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 text-white p-2 rounded-full shadow-lg"><Plus size={20} /></button>}
-                            </div>
-                            <div className="p-4 md:p-6 pb-20 space-y-4">
-                                {activeDayData.activities.length === 0 ? (
-                                    <div className="text-center py-12 text-gray-400 dark:text-slate-500">
-                                        <Map className="mx-auto mb-3 opacity-20" size={48} />
-                                        <p>這裡還沒有行程</p>
-                                        {isEditMode && <button onClick={openAddModal} className="text-blue-500 dark:text-blue-400 mt-4 hover:underline">＋ 新增行程</button>}
+                            {/* Render Itinerary Mobile is handled by responsive CSS above */}
+                            <div className="md:block">
+                                <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex justify-between items-start bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm sticky top-0 z-10">
+                                    <div className="flex-1">
+                                        <span className="text-blue-500 dark:text-blue-400 font-bold text-sm bg-blue-50 dark:bg-slate-700 px-2 py-1 rounded mb-2 inline-block">{activeDayData.date} ({getFormattedDate(trip.startDate, trip.days.findIndex(d => d.id === activeDay))})</span>
+                                        {editingDayTitleId === activeDayData.id && isEditMode ? (
+                                            <div className="flex items-center gap-2"><input className="text-2xl font-bold text-slate-800 dark:text-white border-b-2 border-blue-500 outline-none bg-transparent" autoFocus value={activeDayData.title} onChange={(e) => setTrip({...trip, days: trip.days.map(d => d.id === activeDay ? {...d, title: e.target.value} : d)})} onBlur={() => setEditingDayTitleId(null)} onKeyDown={(e) => e.key==='Enter' && setEditingDayTitleId(null)} /><button onClick={() => setEditingDayTitleId(null)} className="text-green-500"><CheckCircle size={24} /></button></div>
+                                        ) : (
+                                            <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2 cursor-pointer" onClick={() => isEditMode && setEditingDayTitleId(activeDayData.id)}>{activeDayData.title} {isEditMode && <Edit3 size={18} className="opacity-20 hover:opacity-100" />}</h2>
+                                        )}
                                     </div>
-                                ) : activeDayData.activities.map((activity) => (
-                                    <div key={activity.id} className="relative pl-4 md:pl-0">
-                                        <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gray-100 dark:bg-slate-700 md:hidden ml-1.5"></div>
-                                        <div className={`group relative bg-white dark:bg-slate-800 border-l-4 ${getTypeBorderColor(activity.type)} shadow-sm rounded-r-lg rounded-bl-lg p-3 md:p-4`}>
-                                            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
-                                                <div className="flex items-center gap-2 md:w-20 shrink-0"><span className="font-mono font-bold text-lg text-slate-700 dark:text-slate-300">{activity.time}</span></div>
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-2 mb-1">{getTypeIcon(activity.type)}<h3 className="font-bold text-lg text-slate-800 dark:text-white">{activity.title}</h3></div>
-                                                    <div className="text-sm text-gray-500 dark:text-slate-400 flex flex-wrap gap-x-4 gap-y-1"><span className="flex items-center gap-1"><MapPin size={14} /> {activity.location}</span>{activity.note && <span className="bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded text-xs">{activity.note}</span>}</div>
-                                                </div>
-                                                {isEditMode && (
-                                                    <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition">
-                                                        <button onClick={() => openEditModal(activity)} className="p-2 text-gray-300 hover:text-blue-500 bg-white/80 dark:bg-slate-800/80 rounded-full"><Edit3 size={16} /></button>
-                                                        <button onClick={() => handleDeleteActivity(activeDay, activity.id)} className="p-2 text-gray-300 hover:text-red-500 bg-white/80 dark:bg-slate-800/80 rounded-full"><Trash2 size={16} /></button>
+                                    {isEditMode && <button onClick={openAddModal} className="hidden md:flex bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 text-white p-2 rounded-full shadow-lg"><Plus size={20} /></button>}
+                                </div>
+                                <div className="p-4 md:p-6 pb-20 space-y-4">
+                                    {activeDayData.activities.length === 0 ? (
+                                        <div className="text-center py-12 text-gray-400 dark:text-slate-500">
+                                            <Map className="mx-auto mb-3 opacity-20" size={48} />
+                                            <p>這裡還沒有行程</p>
+                                            {isEditMode && <button onClick={openAddModal} className="text-blue-500 dark:text-blue-400 mt-4 hover:underline">＋ 新增行程</button>}
+                                        </div>
+                                    ) : activeDayData.activities.map((activity) => (
+                                        <div key={activity.id} className="relative pl-4 md:pl-0">
+                                            <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gray-100 dark:bg-slate-700 md:hidden ml-1.5"></div>
+                                            <div className={`group relative bg-white dark:bg-slate-800 border-l-4 ${getTypeBorderColor(activity.type)} shadow-sm rounded-r-lg rounded-bl-lg p-3 md:p-4`}>
+                                                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+                                                    <div className="flex items-center gap-2 md:w-20 shrink-0"><span className="font-mono font-bold text-lg text-slate-700 dark:text-slate-300">{activity.time}</span></div>
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2 mb-1">{getTypeIcon(activity.type)}<h3 className="font-bold text-lg text-slate-800 dark:text-white">{activity.title}</h3></div>
+                                                        <div className="text-sm text-gray-500 dark:text-slate-400 flex flex-wrap gap-x-4 gap-y-1"><span className="flex items-center gap-1"><MapPin size={14} /> {activity.location}</span>{activity.note && <span className="bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded text-xs">{activity.note}</span>}</div>
                                                     </div>
-                                                )}
+                                                    {isEditMode && (
+                                                        <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                                                            <button onClick={() => openEditModal(activity)} className="p-2 text-gray-300 hover:text-blue-500 bg-white/80 dark:bg-slate-800/80 rounded-full"><Edit3 size={16} /></button>
+                                                            <button onClick={() => handleDeleteActivity(activeDay, activity.id)} className="p-2 text-gray-300 hover:text-red-500 bg-white/80 dark:bg-slate-800/80 rounded-full"><Trash2 size={16} /></button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>
