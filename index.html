@@ -41,13 +41,12 @@
         import { 
             MapPin, Calendar, Plus, Trash2, CheckCircle, Circle, 
             Coffee, Camera, Hotel, Utensils, Train,
-            Sun, Moon, Luggage, Map, Edit3, Save, X, Sparkles, Loader2,
-            ArrowRight, ExternalLink, Search, Menu, Download, Eye, EyeOff, RefreshCw, AlertCircle, FolderOpen
+            Sun, Moon, Luggage, Map, Edit3, Save, X, Loader2,
+            ArrowRight, ExternalLink, Search, Menu, Download, Eye, EyeOff, RefreshCw, AlertCircle, Image as ImageIcon
         } from 'lucide-react';
 
         const TravelPlanner = () => {
-            const apiKey = ""; 
-            const fileInputRef = useRef(null); // 用於手動匯入檔案
+            const imageInputRef = useRef(null);
 
             const defaultTrip = {
                 destination: "日本關西：京都 & 大阪 (範例)",
@@ -59,11 +58,7 @@
                         id: 1,
                         date: "Day 1",
                         title: "抵達大阪 & 道頓堀",
-                        activities: [
-                            { id: 101, time: "14:00", title: "關西機場抵達", location: "KIX T1", type: "transport", note: "搭乘南海電鐵特急 Rapit" },
-                            { id: 102, time: "16:00", title: "飯店 Check-in", location: "難波 Cross Hotel", type: "accommodation", note: "寄放行李" },
-                            { id: 103, time: "18:00", title: "道頓堀晚餐", location: "一蘭拉麵", type: "food", note: "一定要加點半熟蛋" },
-                        ]
+                        activities: []
                     },
                     {
                         id: 2,
@@ -96,10 +91,6 @@
             const [newActivity, setNewActivity] = useState({ time: "", title: "", location: "", type: "sightseeing", note: "" });
             const [newItemText, setNewItemText] = useState("");
             const [showAutoSaved, setShowAutoSaved] = useState(false);
-            const [isGeneratingPackingList, setIsGeneratingPackingList] = useState(false);
-            const [transportQuery, setTransportQuery] = useState({ from: "", to: "" });
-            const [transportResult, setTransportResult] = useState(null);
-            const [isTransportLoading, setIsTransportLoading] = useState(false);
             const [dataStatus, setDataStatus] = useState("init");
 
             useEffect(() => {
@@ -112,7 +103,7 @@
                 let loaded = false;
 
                 try {
-                    const response = await fetch(`trip_data 1203.json?t=${new Date().getTime()}`);
+                    const response = await fetch(`trip_data.json?t=${new Date().getTime()}`);
                     if (response.ok) {
                         const jsonData = await response.json();
                         if(jsonData.days) {
@@ -124,7 +115,7 @@
                         }
                     }
                 } catch (error) {
-                    console.log("JSON 讀取失敗 (本地模式無法自動讀取，請使用匯入按鈕):", error);
+                    console.warn("無法自動讀取 trip_data.json (本地模式):", error);
                 }
 
                 if (!loaded) {
@@ -134,7 +125,7 @@
                             const parsed = JSON.parse(savedTrip);
                             if (parsed.flightInfo) delete parsed.flightInfo;
                             setTrip(parsed);
-                            setDataStatus("local"); // 使用本地快取
+                            setDataStatus("local"); 
                             loaded = true;
                         } catch(e) {}
                     }
@@ -196,62 +187,19 @@
                 document.body.removeChild(link);
             };
 
-            // ★★★ 新增：手動匯入 JSON 功能 ★★★
-            const handleImportClick = () => {
-                fileInputRef.current.click();
+            const handleImageUploadClick = () => {
+                if (imageInputRef.current) imageInputRef.current.click();
             };
 
-            const handleFileChange = (event) => {
+            const handleImageChange = (event) => {
                 const file = event.target.files[0];
                 if (!file) return;
-
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    try {
-                        const json = JSON.parse(e.target.result);
-                        if (json.days && Array.isArray(json.days)) {
-                            // 清理舊資料結構
-                            if (json.flightInfo) delete json.flightInfo;
-                            setTrip(json);
-                            if(json.days.length > 0) setActiveDay(json.days[0].id);
-                            setDataStatus("success");
-                            alert("匯入成功！");
-                        } else {
-                            alert("檔案格式錯誤，請確認這是正確的 trip_data.json");
-                        }
-                    } catch (error) {
-                        console.error("解析錯誤", error);
-                        alert("檔案解析失敗，請確認檔案內容是否完整");
-                    }
+                    setTrip(prev => ({ ...prev, coverImage: e.target.result }));
                 };
-                reader.readAsText(file);
-                // 清空 input 讓同一個檔案可以重複選取
-                event.target.value = ''; 
-            };
-
-            const callGeminiAPI = async (prompt, schema) => {
-                if (!apiKey) { alert("請先設定 API Key"); return null; }
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-                try {
-                    const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json", responseSchema: schema } }) });
-                    if (!response.ok) throw new Error(`API Error: ${response.status}`);
-                    const data = await response.json();
-                    return JSON.parse(data.candidates?.[0]?.content?.parts?.[0]?.text);
-                } catch (error) { alert("AI 呼叫失敗"); return null; }
-            };
-
-            const handleAiSuggestPackingList = async () => {
-                setIsGeneratingPackingList(true);
-                const result = await callGeminiAPI(`去${trip.destination}旅行${trip.dates}，推薦5個必備物品`, { type: "ARRAY", items: { type: "OBJECT", properties: { item: { type: "STRING" } } } });
-                if (result) setTrip({ ...trip, packingList: [...trip.packingList, ...result.map(r => ({ id: Date.now() + Math.random(), item: r.item, checked: false }))] });
-                setIsGeneratingPackingList(false);
-            };
-
-            const handleAiTransportQuery = async () => {
-                setIsTransportLoading(true);
-                const result = await callGeminiAPI(`在${trip.destination}從${transportQuery.from}到${transportQuery.to}的交通`, { type: "OBJECT", properties: { method: { type: "STRING" }, duration: { type: "STRING" }, cost: { type: "STRING" }, details: { type: "STRING" } }, required: ["method", "duration", "cost", "details"] });
-                if (result) setTransportResult(result);
-                setIsTransportLoading(false);
+                reader.readAsDataURL(file);
+                event.target.value = '';
             };
 
             const handleAddDay = () => {
@@ -311,12 +259,12 @@
             const renderDaySelector = (isMobile = false) => (
                 <div className={`bg-white dark:bg-slate-800 dark:border-slate-700 rounded-2xl shadow-sm p-4 ${isMobile ? 'overflow-x-auto whitespace-nowrap no-scrollbar' : ''}`}>
                     {!isMobile && <h3 className="font-bold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider mb-3">行程總覽</h3>}
-                    <div className={`${isMobile ? 'flex gap-3 pb-2' : 'space-y-2'}`}>
+                    <div className={`${isMobile ? 'flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 no-scrollbar snap-x snap-mandatory scroll-smooth' : 'space-y-2'}`}>
                         {trip.days.map((day, index) => {
                             const dateStr = getFormattedDate(trip.startDate, index);
                             return (
                                 <button key={day.id} onClick={() => setActiveDay(day.id)}
-                                    className={`rounded-xl transition-all flex items-center shrink-0 
+                                    className={`rounded-xl transition-all flex items-center shrink-0 snap-center
                                     ${isMobile ? 'flex-none px-4 py-2 border' : 'w-full text-left p-3 justify-between'} 
                                     ${activeDay === day.id 
                                         ? 'bg-blue-50 dark:bg-slate-700 text-blue-600 dark:text-blue-300 border-blue-200 dark:border-slate-600 ring-1 ring-blue-200 dark:ring-slate-600 shadow-sm' 
@@ -334,9 +282,32 @@
                             );
                         })}
                         {isEditMode && (
-                            <button onClick={handleAddDay} className={`border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 dark:text-slate-500 hover:border-blue-300 hover:text-blue-500 dark:hover:text-blue-300 transition flex items-center justify-center gap-2 font-bold text-sm shrink-0 ${isMobile ? 'flex-none px-4 py-2' : 'w-full py-2 mt-2'}`}>
+                            <button onClick={handleAddDay} className={`border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 dark:text-slate-500 hover:border-blue-300 hover:text-blue-500 dark:hover:text-blue-300 transition flex items-center justify-center gap-2 font-bold text-sm shrink-0 snap-center ${isMobile ? 'flex-none px-4 py-2' : 'w-full py-2 mt-2'}`}>
                                 <Plus size={16} /> {isMobile ? "新增" : "新增天數"}
                             </button>
+                        )}
+                    </div>
+                </div>
+            );
+
+            const renderPackingList = () => (
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-4">
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="font-bold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider flex items-center gap-2"><Luggage size={14} /> 行李清單</h3>
+                    </div>
+                    <div className="space-y-2">
+                        {trip.packingList.map(item => (
+                            <div key={item.id} className="group flex items-center gap-3 text-sm min-h-[32px]">
+                                <button onClick={() => setTrip({...trip, packingList: trip.packingList.map(i => i.id === item.id ? {...i, checked: !i.checked} : i)})} className={item.checked ? 'text-green-500' : 'text-gray-300 dark:text-slate-500 hover:text-gray-400'} p-1>{item.checked ? <CheckCircle size={18} /> : <Circle size={18} />}</button>
+                                <span className={`flex-1 ${item.checked ? 'text-gray-400 dark:text-slate-500 line-through' : 'text-gray-700 dark:text-slate-200'}`}>{item.item}</span>
+                                {isEditMode && <button onClick={() => setTrip({...trip, packingList: trip.packingList.filter(i => i.id !== item.id)})} className="text-red-300 opacity-0 group-hover:opacity-100 hover:text-red-500 transition"><X size={14} /></button>}
+                            </div>
+                        ))}
+                        {isEditMode && (
+                            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-slate-700">
+                                <Plus size={16} className="text-gray-400" />
+                                <input type="text" placeholder="新增物品..." className="w-full bg-transparent outline-none text-sm placeholder-gray-400 min-h-[40px] dark:text-white" value={newItemText} onChange={(e) => setNewItemText(e.target.value)} onKeyDown={(e) => { if(e.key==='Enter' && newItemText.trim()){ setTrip({...trip, packingList: [...trip.packingList, {id: Date.now(), item: newItemText, checked: false}]}); setNewItemText(""); }}} />
+                            </div>
                         )}
                     </div>
                 </div>
@@ -394,8 +365,8 @@
                                                     </div>
                                                     {isEditMode && (
                                                         <div className="absolute top-3 right-3 flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition">
-                                                            <button onClick={(e) => { e.stopPropagation(); openEditModal(activity); }} className="p-2 text-gray-300 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 bg-white/80 dark:bg-slate-700/80 rounded-full"><Edit3 size={16} /></button>
-                                                            <button onClick={(e) => { e.stopPropagation(); handleDeleteActivity(activeDay, activity.id); }} className="p-2 text-gray-300 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 bg-white/80 dark:bg-slate-700/80 rounded-full"><Trash2 size={16} /></button>
+                                                            <button onClick={(e) => { e.stopPropagation(); openEditModal(activity); }} className="p-2 text-gray-300 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 bg-white/80 dark:bg-slate-800/80 rounded-full"><Edit3 size={16} /></button>
+                                                            <button onClick={(e) => { e.stopPropagation(); handleDeleteActivity(activeDay, activity.id); }} className="p-2 text-gray-300 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 bg-white/80 dark:bg-slate-800/80 rounded-full"><Trash2 size={16} /></button>
                                                         </div>
                                                     )}
                                                 </div>
@@ -420,9 +391,12 @@
                             {dataStatus === 'error' && <div className="bg-orange-500/80 backdrop-blur-md text-white px-3 py-2 rounded-full text-xs font-bold flex items-center gap-1"><AlertCircle size={14} /> 本機模式 (未連結 GitHub)</div>}
                             {showAutoSaved && <div className="bg-black/40 backdrop-blur-md text-white px-3 py-2 rounded-full text-xs font-bold flex items-center gap-1 border border-white/10 animate-fade-in"><CheckCircle size={14} className="text-green-400" /> 已自動儲存</div>}
                             
-                            {/* 工具列 */}
-                            <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
-                            <button onClick={handleImportClick} className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white p-2 rounded-full border border-white/10" title="匯入行程 (解決無法讀取問題)"><FolderOpen size={18} /></button>
+                            {/* 隱藏的檔案上傳 Input */}
+                            <input type="file" ref={imageInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
+
+                            {/* 工具列按鈕 */}
+                            {isEditMode && <button onClick={handleImageUploadClick} className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white p-2 rounded-full border border-white/10" title="上傳封面圖片"><ImageIcon size={18} /></button>}
+                            
                             <button onClick={loadTripData} className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white p-2 rounded-full border border-white/10" title="重新讀取資料"><RefreshCw size={18} /></button>
                             <button onClick={() => setIsDarkMode(!isDarkMode)} className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white p-2 rounded-full border border-white/10" title="切換深色模式">{isDarkMode ? <Sun size={18} /> : <Moon size={18} />}</button>
                             <button onClick={() => setIsEditMode(!isEditMode)} className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white p-2 rounded-full border border-white/10" title={isEditMode ? "切換至預覽模式" : "切換至編輯模式"}>{isEditMode ? <Eye size={18} /> : <Edit3 size={18} />}</button>
@@ -458,40 +432,10 @@
                     <div className="max-w-4xl mx-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="md:col-span-1 space-y-6">
                             {renderDaySelector(false)}
-                            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-4 border border-blue-100 dark:border-slate-700">
-                                <h3 className="font-bold text-blue-600 dark:text-blue-400 text-xs uppercase tracking-wider mb-3 flex items-center gap-2"><Train size={14} /> AI 交通查詢</h3>
-                                <div className="space-y-2">
-                                    <input placeholder="出發地" className="w-full bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm outline-none dark:text-white dark:placeholder-slate-400" value={transportQuery.from} onChange={(e) => setTransportQuery({...transportQuery, from: e.target.value})} />
-                                    <input placeholder="目的地" className="w-full bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm outline-none dark:text-white dark:placeholder-slate-400" value={transportQuery.to} onChange={(e) => setTransportQuery({...transportQuery, to: e.target.value})} />
-                                    <button onClick={handleAiTransportQuery} disabled={isTransportLoading} className="w-full bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-bold flex justify-center gap-2">{isTransportLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />} 查詢</button>
-                                    {transportResult && <div className="mt-3 bg-blue-50 dark:bg-slate-700 rounded-lg p-3 text-sm animate-fade-in"><span className="font-bold text-blue-800 dark:text-blue-300">{transportResult.method}</span> • <span className="dark:text-slate-300">{transportResult.cost} • {transportResult.duration}</span><br/><span className="text-gray-600 dark:text-slate-400">{transportResult.details}</span></div>}
-                                </div>
-                            </div>
-                            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-4">
-                                <div className="flex justify-between items-center mb-3">
-                                    <h3 className="font-bold text-gray-500 dark:text-slate-400 text-xs uppercase tracking-wider flex items-center gap-2"><Luggage size={14} /> 行李清單</h3>
-                                    {isEditMode && <button onClick={handleAiSuggestPackingList} disabled={isGeneratingPackingList} className="text-xs bg-purple-50 dark:bg-slate-700 text-purple-600 dark:text-purple-300 px-2 py-1 rounded-full flex items-center gap-1 hover:bg-purple-100 dark:hover:bg-slate-600">{isGeneratingPackingList ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} AI 推薦</button>}
-                                </div>
-                                <div className="space-y-2">
-                                    {trip.packingList.map(item => (
-                                        <div key={item.id} className="group flex items-center gap-3 text-sm min-h-[32px]">
-                                            <button onClick={() => setTrip({...trip, packingList: trip.packingList.map(i => i.id === item.id ? {...i, checked: !i.checked} : i)})} className={item.checked ? 'text-green-500' : 'text-gray-300 dark:text-slate-500 hover:text-gray-400'} p-1>{item.checked ? <CheckCircle size={18} /> : <Circle size={18} />}</button>
-                                            <span className={`flex-1 ${item.checked ? 'text-gray-400 dark:text-slate-500 line-through' : 'text-gray-700 dark:text-slate-200'}`}>{item.item}</span>
-                                            {isEditMode && <button onClick={() => setTrip({...trip, packingList: trip.packingList.filter(i => i.id !== item.id)})} className="text-red-300 opacity-0 group-hover:opacity-100 hover:text-red-500 transition"><X size={14} /></button>}
-                                        </div>
-                                    ))}
-                                    {isEditMode && (
-                                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-slate-700">
-                                            <Plus size={16} className="text-gray-400" />
-                                            <input type="text" placeholder="新增物品..." className="w-full bg-transparent outline-none text-sm placeholder-gray-400 min-h-[40px] dark:text-white" value={newItemText} onChange={(e) => setNewItemText(e.target.value)} onKeyDown={(e) => { if(e.key==='Enter' && newItemText.trim()){ setTrip({...trip, packingList: [...trip.packingList, {id: Date.now(), item: newItemText, checked: false}]}); setNewItemText(""); }}} />
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                            {renderPackingList()}
                         </div>
 
                         <div className="md:col-span-2 bg-white dark:bg-slate-800 rounded-2xl shadow-sm min-h-[500px] relative overflow-hidden">
-                            {/* Render Itinerary Mobile is handled by responsive CSS above */}
                             <div className="md:block">
                                 {renderItinerary()}
                             </div>
@@ -502,7 +446,7 @@
 
                     {showAddModal && (
                         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-0 md:p-4 animate-fade-in">
-                            <div className="bg-white dark:bg-slate-800 rounded-t-2xl md:rounded-2xl shadow-xl w-full max-w-2x1 overflow-hidden flex flex-col max-h-[90vh]">
+                            <div className="bg-white dark:bg-slate-800 rounded-t-2xl md:rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
                                 <div className="p-4 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-700 shrink-0">
                                     <h3 className="font-bold text-lg text-slate-800 dark:text-white">{editingActivityId ? "編輯行程" : "新增行程"}</h3>
                                     <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 p-2"><X size={20} /></button>
@@ -512,9 +456,9 @@
                                         <div className="col-span-1"><label className="block text-xs font-bold text-gray-500 dark:text-slate-400 mb-1">時間</label><input type="time" className="w-full border border-gray-200 dark:border-slate-600 rounded-xl p-3 bg-gray-50 dark:bg-slate-700 focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-blue-100 dark:focus:ring-slate-500 outline-none transition dark:text-white" value={newActivity.time} onChange={e => setNewActivity({...newActivity, time: e.target.value})} /></div>
                                         <div className="col-span-2"><label className="block text-xs font-bold text-gray-500 dark:text-slate-400 mb-1">類別</label><select className="w-full border border-gray-200 dark:border-slate-600 rounded-xl p-3 bg-gray-50 dark:bg-slate-700 outline-none h-[46px] dark:text-white" value={newActivity.type} onChange={e => setNewActivity({...newActivity, type: e.target.value})}><option value="sightseeing">📷 景點</option><option value="food">🍴 美食</option><option value="shopping">🛍️ 購物</option><option value="transport">🚆 交通</option><option value="accommodation">🏨 住宿</option><option value="leisure">☕ 休閒</option></select></div>
                                     </div>
-                                    <div><label className="block text-xs font-bold text-gray-500 dark:text-slate-400 mb-1">名稱</label><input type="text" className="w-full border border-gray-200 dark:border-slate-600 rounded-xl p-3 dark:bg-slate-700 dark:text-white" value={newActivity.title} onChange={e => setNewActivity({...newActivity, title: e.target.value})} /></div>
+                                    <div><label className="block text-xs font-bold text-gray-500 dark:text-slate-400 mb-1">名稱</label><input type="text" className="w-full border border-gray-200 dark:border-slate-600 rounded-xl p-3 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-blue-100 dark:focus:ring-slate-500 outline-none" value={newActivity.title} onChange={e => setNewActivity({...newActivity, title: e.target.value})} /></div>
                                     <div><label className="block text-xs font-bold text-gray-500 dark:text-slate-400 mb-1">地點 / 備註</label><div className="space-y-3"><input type="text" placeholder="地點" className="w-full border border-gray-200 dark:border-slate-600 rounded-xl p-3 text-sm dark:bg-slate-700 dark:text-white" value={newActivity.location} onChange={e => setNewActivity({...newActivity, location: e.target.value})} /><input type="text" placeholder="備註" className="w-full border border-gray-200 dark:border-slate-600 rounded-xl p-3 text-sm dark:bg-slate-700 dark:text-white" value={newActivity.note} onChange={e => setNewActivity({...newActivity, note: e.target.value})} /></div></div>
-                                    <button onClick={handleSaveActivity} disabled={!newActivity.title || !newActivity.time} className="w-full bg-slate-800 dark:bg-slate-600 text-white font-bold py-4 rounded-xl shadow-lg disabled:opacity-50">儲存</button>
+                                    <button onClick={handleSaveActivity} disabled={!newActivity.title || !newActivity.time} className="w-full bg-slate-800 dark:bg-slate-600 hover:bg-slate-700 dark:hover:bg-slate-500 text-white font-bold py-4 rounded-xl shadow-lg disabled:opacity-50">儲存</button>
                                 </div>
                                 <div className="h-6 md:hidden"></div>
                             </div>
@@ -528,8 +472,4 @@
         root.render(<TravelPlanner />);
     </script>
 </body>
-
 </html>
-
-
-
