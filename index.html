@@ -104,7 +104,7 @@
                 let loaded = false;
 
                 try {
-                    const response = await fetch(`trip_data (6).json?t=${new Date().getTime()}`);
+                    const response = await fetch(`trip_data.json?t=${new Date().getTime()}`);
                     if (response.ok) {
                         const jsonData = await response.json();
                         if(jsonData.days) {
@@ -396,5 +396,4 @@
                                 <div className="w-full">
                                     {isEditingHeader && isEditMode ? (
                                         <div className="space-y-2 mb-2 bg-black/40 p-4 rounded-xl backdrop-blur-sm border border-white/10">
-
                                             <input className="text-black px-3
