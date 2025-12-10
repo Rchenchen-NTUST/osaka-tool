@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>251228 十日大阪遊</title>
+    <title>旅程規劃助手</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -42,7 +42,7 @@
             MapPin, Calendar, Plus, Trash2, CheckCircle, Circle, 
             Coffee, Camera, Hotel, Utensils, Train,
             Sun, Moon, Luggage, Map, Edit3, Save, X, Loader2,
-            ArrowRight, ExternalLink, Search, Menu, Download, Eye, EyeOff, RefreshCw, AlertCircle, Image as ImageIcon
+            ArrowRight, ExternalLink, Search, Menu, Download, Eye, EyeOff, RefreshCw, AlertCircle, Image as ImageIcon, FolderOpen
         } from 'lucide-react';
 
         const TravelPlanner = () => {
@@ -104,7 +104,7 @@
                 let loaded = false;
 
                 try {
-                    const response = await fetch(`trip_data (8).json?t=${new Date().getTime()}`);
+                    const response = await fetch(`trip_data.json?t=${new Date().getTime()}`);
                     if (response.ok) {
                         const jsonData = await response.json();
                         if(jsonData.days) {
@@ -186,6 +186,36 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+            };
+
+            // 手動匯入 JSON
+            const handleImportClick = () => {
+                if (fileInputRef.current) fileInputRef.current.click();
+            };
+
+            const handleFileChange = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const json = JSON.parse(e.target.result);
+                        if (json.days && Array.isArray(json.days)) {
+                            if (json.flightInfo) delete json.flightInfo;
+                            setTrip(json);
+                            if(json.days.length > 0) setActiveDay(json.days[0].id);
+                            setDataStatus("success");
+                            alert("匯入成功！");
+                        } else {
+                            alert("檔案格式錯誤");
+                        }
+                    } catch (error) {
+                        console.error("解析錯誤", error);
+                        alert("檔案解析失敗");
+                    }
+                };
+                reader.readAsText(file);
+                event.target.value = ''; 
             };
 
             const handleImageUploadClick = () => {
@@ -293,7 +323,7 @@
                 </div>
             );
 
-            // 這裡補回遺失的 renderPackingList 函式
+            // 行李清單
             const renderPackingList = () => (
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-4">
                     <div className="flex justify-between items-center mb-3">
@@ -404,10 +434,13 @@
                             {showAutoSaved && <div className="bg-black/40 backdrop-blur-md text-white px-3 py-2 rounded-full text-xs font-bold flex items-center gap-1 border border-white/10 animate-fade-in"><CheckCircle size={14} className="text-green-400" /> 已自動儲存</div>}
                             
                             {/* 隱藏的檔案上傳 Input */}
+                            <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
                             <input type="file" ref={imageInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
 
                             {/* 工具列按鈕 */}
                             {isEditMode && <button onClick={handleImageUploadClick} className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white p-2 rounded-full border border-white/10" title="上傳封面圖片"><ImageIcon size={18} /></button>}
+                            
+                            <button onClick={handleImportClick} className="bg-blue-600 hover:bg-blue-500 backdrop-blur-md text-white px-3 py-2 rounded-full border border-white/10 flex items-center gap-1 text-xs font-bold" title="匯入之前儲存的行程檔"><FolderOpen size={16} /> 匯入檔案</button>
                             
                             <button onClick={loadTripData} className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white p-2 rounded-full border border-white/10" title="重新讀取資料"><RefreshCw size={18} /></button>
                             <button onClick={() => setIsDarkMode(!isDarkMode)} className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white p-2 rounded-full border border-white/10" title="切換深色模式">{isDarkMode ? <Sun size={18} /> : <Moon size={18} />}</button>
@@ -441,14 +474,21 @@
                         </div>
                     </div>
 
-                    <div className="max-w-4xl mx-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="md:col-span-1 space-y-6">
-                            {renderDaySelector(false)}
+                    <div className="max-w-4xl mx-auto p-4 md:p-6">
+                        {/* 手機版佈局 */}
+                        <div className="md:hidden flex flex-col gap-4">
+                            {renderDaySelector(true)}
+                            {renderItinerary()}
                             {renderPackingList()}
                         </div>
 
-                        <div className="md:col-span-2 bg-white dark:bg-slate-800 rounded-2xl shadow-sm min-h-[500px] relative overflow-hidden">
-                            <div className="md:block">
+                        {/* 電腦版佈局 */}
+                        <div className="hidden md:grid grid-cols-3 gap-6">
+                            <div className="col-span-1 space-y-6">
+                                {renderDaySelector(false)}
+                                {renderPackingList()}
+                            </div>
+                            <div className="col-span-2">
                                 {renderItinerary()}
                             </div>
                         </div>
@@ -484,8 +524,4 @@
         root.render(<TravelPlanner />);
     </script>
 </body>
-
 </html>
-
-
-
