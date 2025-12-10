@@ -1,0 +1,202 @@
+{
+  "destination": "日本關西：京都 & 大阪",
+  "startDate": "2025-12-28",
+  "dates": "2025/12/28 - 2026/01/06",
+  "coverImage": "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80",
+  "days": [
+    {
+      "id": 1,
+      "date": "Day 1",
+      "title": "抵達大阪 & 道頓堀",
+      "activities": [
+        {
+          "id": 101,
+          "time": "14:40",
+          "title": "桃機 第一航廈 出發",
+          "location": "IT212",
+          "type": "transport",
+          "note": "搭乘南海電鐵特急 Rapit"
+        },
+        {
+          "time": "17:55",
+          "title": "抵達關西機場",
+          "location": "關西機場 第一航廈",
+          "type": "transport",
+          "note": "",
+          "id": 1764609572826
+        },
+        {
+          "id": 102,
+          "time": "19:30",
+          "title": "飯店 Check-in",
+          "location": "",
+          "type": "accommodation",
+          "note": "寄放行李"
+        },
+        {
+          "id": 103,
+          "time": "20:30",
+          "title": "晚餐行程",
+          "location": "",
+          "type": "food",
+          "note": ""
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "date": "Day 2",
+      "title": "大阪周遊 day 1 ",
+      "activities": [
+        {
+          "time": "09:00",
+          "title": "早餐",
+          "location": "",
+          "type": "food",
+          "note": "",
+          "id": 1764751849904
+        },
+        {
+          "id": 202,
+          "time": "10:00",
+          "title": "天保山 摩天輪",
+          "location": "Metro 大阪港",
+          "type": "sightseeing",
+          "note": "15 - 20 min"
+        },
+        {
+          "time": "11:00",
+          "title": "聖瑪利亞號 觀光船",
+          "location": "Metro 大阪港 海遊館旁",
+          "type": "sightseeing",
+          "note": "45 min",
+          "id": 1765046194285
+        },
+        {
+          "time": "12:00",
+          "title": "吃午餐",
+          "location": "梅田",
+          "type": "food",
+          "note": "",
+          "id": 1765049498915
+        },
+        {
+          "id": 203,
+          "time": "15:00",
+          "title": "梅田藍天觀景台",
+          "location": "Metro 梅田",
+          "type": "sightseeing",
+          "note": "1600前入場"
+        },
+        {
+          "id": 204,
+          "time": "16:30",
+          "title": "梅田",
+          "location": "吉伊卡哇LAND 大阪梅田店",
+          "type": "shopping",
+          "note": ""
+        },
+        {
+          "time": "18:30",
+          "title": "吃飯",
+          "location": "待定",
+          "type": "food",
+          "note": "",
+          "id": 1765346954714
+        },
+        {
+          "time": "21:00",
+          "title": "Wonder Cruise",
+          "location": "道頓堀",
+          "type": "sightseeing",
+          "note": "先旁邊等 還可以喝點小酒",
+          "id": 1765346845578
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "date": "Day 3",
+      "title": "大阪周遊 day 2",
+      "activities": [
+        {
+          "time": "08:00",
+          "title": "木津市場",
+          "location": "",
+          "type": "food",
+          "note": "",
+          "id": 1765346979978
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "date": "Day 4",
+      "title": "自由活動",
+      "activities": []
+    },
+    {
+      "id": 5,
+      "date": "Day 5",
+      "title": "自由活動",
+      "activities": []
+    },
+    {
+      "id": 6,
+      "date": "Day 6",
+      "title": "自由活動",
+      "activities": []
+    },
+    {
+      "id": 7,
+      "date": "Day 7",
+      "title": "自由活動",
+      "activities": []
+    },
+    {
+      "id": 8,
+      "date": "Day 8",
+      "title": "自由活動",
+      "activities": []
+    },
+    {
+      "id": 9,
+      "date": "Day 9",
+      "title": "自由活動",
+      "activities": []
+    },
+    {
+      "id": 10,
+      "date": "Day 10",
+      "title": "自由活動",
+      "activities": []
+    }
+  ],
+  "packingList": [
+    {
+      "id": 1,
+      "item": "護照",
+      "checked": false
+    },
+    {
+      "id": 2,
+      "item": "日幣現金",
+      "checked": false
+    },
+    {
+      "id": 3,
+      "item": "網卡 /漫遊",
+      "checked": false
+    },
+    {
+      "id": 4,
+      "item": "環球影城門票 QR Code",
+      "checked": false
+    },
+    {
+      "id": 5,
+      "item": "充電器 & 轉接頭",
+      "checked": false
+    }
+  ]
+}
